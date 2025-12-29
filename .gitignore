@@ -8,3 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+# other files
+dolphin.ply
+exo1.py
+exo2.py
+exo3.py
+tp2_exo1.py
