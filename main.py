@@ -19,6 +19,33 @@ class Sphere:
         self.specular = specular
         self.reflective = reflective
 
+class Rectangle:
+    def __init__(self, center, normal, width, height, color, specular, reflective):
+        self.center = center
+        self.normal = vector_normalize(normal)
+        self.width = width
+        self.height = height
+        self.color = color
+        self.specular = specular
+        self.reflective = reflective
+
+        # Choix d’un vecteur non colinéaire
+        if abs(self.normal.y) < 0.9:
+            tmp = Vector3(0, 1, 0)
+        else:
+            tmp = Vector3(1, 0, 0)
+
+        self.u = vector_normalize(cross_product(tmp, self.normal))
+        self.v = cross_product(self.normal, self.u)
+
+    
+class Scene:
+    def __init__(self,spheres,rectangles,lights):
+        self.spheres = spheres
+        self.rectangles = rectangles
+        self.lights = lights
+        
+
 class Light: 
     def __init__(self,type,intensity,position,direction):
         self.type = type
@@ -98,6 +125,33 @@ def dot_product(A, B):
     return result
 
 
+def rotation_matrix(axis, theta):
+    """Génère une matrice de rotation autour d'un axe arbitraire."""
+    # TODO : mettre en œuvre 
+    axis = vector_normalize(axis)
+
+    cos_theta = np.cos(theta)
+    sin_theta = np.sin(theta)
+
+    nx = axis.x
+    ny = axis.y
+    nz = axis.z
+
+    R = np.array([
+        [(1 - cos_theta)*nx*nx + cos_theta,     (1 - cos_theta)*nx*ny - sin_theta*nz,  (1 - cos_theta)*nx*nz + sin_theta*ny],
+        [(1 - cos_theta)*nx*ny + sin_theta*nz,  (1 - cos_theta)*ny*ny + cos_theta,     (1 - cos_theta)*ny*nz - sin_theta*nx],
+        [(1 - cos_theta)*nx*nz - sin_theta*ny,  (1 - cos_theta)*ny*nz + sin_theta*nx,  (1 - cos_theta)*nz*nz + cos_theta   ]
+    ])
+    return R 
+
+def np_to_vec3(a):
+    return Vector3(a[0], a[1], a[2])
+
+def vec3_to_np(v):
+    return np.array([v.x, v.y, v.z])
+
+
+
 def CanvasToViewport(x, y) :
     return Vector3(x*Vw/Cw, y*Vh/Ch, d) #calcule le vecteur directeur caméra / fenetre d affichage
 
@@ -120,12 +174,43 @@ def IntersectRaySphere(O, D, sphere) :
     t2 = (-b - math.sqrt(discriminant)) / (2*a)
     return t1, t2
 
+
+def IntersectRayRectangle(O, D, rect):
+    denom = dot_product(rect.normal, D)
+    if abs(denom) < 1e-6:
+        return inf
+
+    t = dot_product(
+        rect.normal,
+        Vector3(
+            rect.center.x - O.x,
+            rect.center.y - O.y,
+            rect.center.z - O.z
+        )
+    ) / denom
+
+    if (t <= 0):
+        return inf
+    
+    # Calcul du point d'intersection P = O+t*D 
+    P = Vector3(O.x + t*D.x, O.y + t*D.y, O.z + t*D.z)
+
+    # Vérifier si P est à l'intérieur du rectangle
+    v = Vector3(P.x - rect.center.x, P.y - rect.center.y, P.z - rect.center.z)
+    u_dist = dot_product(v, rect.u)
+    v_dist = dot_product(v, rect.v)
+    if abs(u_dist) > rect.width / 2 or abs(v_dist) > rect.height / 2:
+        return inf
+
+    return t
+
+
 def ReflectRay(R,N):
     return Vector3(2 * N.x * dot_product(N, R) - R.x,2 * N.y * dot_product(N, R) - R.y,2 * N.z * dot_product(N, R) - R.z)
 
-def ComputeLighting(P, N,V,lights,s,scene):
+def ComputeLighting(P, N,V,s,scene):
     i = 0.0
-    for light in lights :
+    for light in scene.lights :
         if (light.type == "ambient"):
             i += light.intensity
         else: 
@@ -138,8 +223,8 @@ def ComputeLighting(P, N,V,lights,s,scene):
                 L = vector_normalize(light.direction)
                 t_max = inf
             # Shadow check
-            shadow_sphere, shadow_t = ClosestIntersection(P, L, 0.001, t_max,scene)
-            if (shadow_sphere != None) :
+            shadow_obj, shadow_t = ClosestIntersection(P, L, 0.001, t_max,scene)
+            if (shadow_obj != None) :
                 continue
             
             # Diffuse
@@ -156,71 +241,94 @@ def ComputeLighting(P, N,V,lights,s,scene):
     return min(1,i)
 
 
-def TraceRay(O, D, t_min, t_max,scene,lights, recursion_depth) :
-    closest_sphere, closest_t = ClosestIntersection(O, D, t_min, t_max, scene)   
-    if (closest_sphere == None) :
+def TraceRay(O, D, t_min, t_max,scene, recursion_depth) :
+    closest_obj, closest_t = ClosestIntersection(O, D, t_min, t_max, scene)   
+    if (closest_obj == None) :
         return BACKGROUND_COLOR
-    
+
     #P = O + closest_t * D  # Compute intersection
     P = Vector3(O.x + closest_t *  D.x,
              O.y + closest_t * D.y,
              O.z + closest_t * D.z)
-    #N = P - closest_sphere.cente
-    N = Vector3(P.x - closest_sphere.center.x,
-             P.y - closest_sphere.center.y,
-             P.z - closest_sphere.center.z)  # Compute sphere normal at intersection
-        
-    N = vector_normalize(N)
-    V = Vector3(-D.x, -D.y, -D.z)
-    i = ComputeLighting(P, N, V,lights,closest_sphere.specular,scene)
-    local_color = closest_sphere.color * i 
+    
+
+    if isinstance(closest_obj, Sphere):
+        N = vector_normalize(Vector3(P.x - closest_obj.center.x,            #N = P - closest_sphere.center
+                                    P.y - closest_obj.center.y,
+                                    P.z - closest_obj.center.z))            # Compute sphere normal at intersection
+        i= ComputeLighting(P, N, Vector3(-D.x,-D.y,-D.z), closest_obj.specular, scene)
+        local_color = closest_obj.color * i
+        r = closest_obj.reflective
+    elif isinstance(closest_obj, Rectangle):
+        N = closest_obj.normal
+        i = ComputeLighting(P, N, Vector3(-D.x,-D.y,-D.z), closest_obj.specular, scene)
+        local_color = closest_obj.color * i
+        r = closest_obj.reflective
 
     #If we hit the recursion limit or the object is not reflective, we're done
-    r = closest_sphere.reflective
     if(recursion_depth <= 0 or r <= 0):
         return local_color
 
     # Compute the reflected color
-    R = ReflectRay(V, N)
-    reflected_color = TraceRay(P, R, 0.001, inf, scene, lights, recursion_depth - 1)
+    R = ReflectRay(Vector3(-D.x,-D.y,-D.z), N)
+    reflected_color = TraceRay(P, R, 0.001, inf, scene, recursion_depth - 1)
     
     return local_color * (1 - r) + reflected_color * r     
     
 def ClosestIntersection(O, D, t_min, t_max,scene) :
     closest_t = inf
-    closest_sphere = None
-    for sphere in scene :
+    closest_obj = None
+    for sphere in scene.spheres :
         t1, t2 = IntersectRaySphere(O, D, sphere)
         if (t_min <= t1 <= t_max and t1 < closest_t) :
             closest_t = t1
-            closest_sphere = sphere
+            closest_obj = sphere
         
         if (t_min <= t2 <= t_max and t2 < closest_t) :
             closest_t = t2
-            closest_sphere = sphere
-    
-    return closest_sphere, closest_t
+            closest_obj = sphere
+
+    for rect in scene.rectangles:
+        t = IntersectRayRectangle(O, D, rect)
+        if t_min <= t <= t_max and t < closest_t:
+            closest_t = t
+            closest_obj = rect
+
+    return closest_obj, closest_t
 
 
 
 def main():
     canvas = Canva(Cw,Ch)
+
     sphere1 =  Sphere(Vector3(0, -1, 3), 1, Color(255, 0, 0),500, 0.2) #Red (Shiny and a bit reflective) 
     sphere2 =  Sphere(Vector3(2, 0, 4),1,Color(0, 0, 255)  ,500, 0.3)  # Blue (Shinyand a bit more reflective)
     sphere3 =  Sphere(Vector3(-2, 0, 4),1,Color(0, 255, 0),10, 0.4)  # Blue (somewhat shiny and even more reflective)
-    sphere4 =  Sphere(Vector3(0, -5001, 0),5000 ,Color(255, 255, 0), 1000, 0.5)  # Yellow (very shiny and half reflective)
-    scene = [sphere1, sphere2, sphere3,sphere4]
-    light1 = Light("ambient", 0.2,None,None)
+    #sphere4 =  Sphere(Vector3(0, -5001, 0),5000 ,Color(255, 255, 0), 1000, 0.5)  # Yellow (very shiny and half reflective)
+    spheres = [sphere1, sphere2, sphere3,]
+
+    rectangle1 = Rectangle(Vector3(0, 0, 10), Vector3(0, 0, -1), 20, 20, Color(200, 200, 200), 100, 0.1)#backwall
+    rectangle2 = Rectangle(Vector3(0, -2, 5), Vector3(0, 1, 0), 20, 20, Color(255, 230, 150), 100, 0.1) #floor
+    rectangle3 = Rectangle(Vector3(0, 6, 5), Vector3(0, -1, 0), 20, 20, Color(245, 245, 245), 100, 0.1) #ceiling
+    rectangle4 = Rectangle(Vector3(-6, 2, 5), Vector3(1, 0, 0), 20, 20, Color(150, 180, 255), 100, 0.1)#left wall
+    rectangle5 = Rectangle(Vector3(6, 2, 5), Vector3(-1, 0, 0), 20, 20, Color(150, 180, 255), 100, 0.1) #right yellow wall
+    rectangles=[rectangle1,rectangle2,rectangle3,rectangle4,rectangle5]
+
+    light1 = Light("ambient", 0.1,None,None)
     light2 = Light("point", 0.6, Vector3(2, 1, 0), None) 
-    light3 = Light("directional", 0.2, None, Vector3(1, 4, 4)) 
-    lights = [light1,light2,light3]
-    
+    light3 = Light("directional", 0.3, None, Vector3(1, 4, 4)) 
+    lights = [light1,light2,light3] 
+
+    scene = Scene(spheres, rectangles, lights) 
     print("Hello from raytracer-project!")
-    O = Vector3(0, 0, 0)
+    O = Vector3(0, 1, -10)                                        #Position de la caméra
+    pi = math.pi
+    R = rotation_matrix(Vector3(0,0,1),pi/10000)
     for i in range(-Cw//2 , Cw//2) : 
         for j in range (-Ch//2 , Ch//2):
-            D = CanvasToViewport(i, j)
-            color = TraceRay(O, D, 1, inf,scene,lights, 3)
+            D_np = R @ vec3_to_np(CanvasToViewport(i, j))
+            D = np_to_vec3(D_np)
+            color = TraceRay(O, D, 1, inf,scene, 3)
             canvas.putPixel(i, j, color.to_tuple())
     canvas.savePPM("output.ppm")
     print("Image saved as output.ppm")    
