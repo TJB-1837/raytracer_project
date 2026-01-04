@@ -2,8 +2,6 @@ import pyray as pr
 import numpy as np
 import math
 from pyray import Vector3
-from PIL import Image
-
 
 inf = math.inf
 Cw = 1920
@@ -63,17 +61,19 @@ class Canva:
         if (0 <= Sx < self.width and 0 <= Sy < self.height):
             self.pixels[Sy][Sx] = color_tuple
 
-    def savePNG(self, filename):
-        # Crée une image vide
-        img = Image.new("RGB", (self.width, self.height))
-        
-        # Remplit l'image pixel par pixel
-        for y in range(self.height):
-            for x in range(self.width):
-                img.putpixel((x, y), self.pixels[y][x])
-        
-        # Sauvegarde en PNG
-        img.save(filename)
+    def savePPM(self, filename):
+        with open(filename, "w") as f:
+            # Header
+            f.write("P3\n")                                 #Précision du type (ici ASCII)
+            f.write(f"{self.width} {self.height}\n")        #Précision du format
+            f.write("255\n")                                #précision valeur max
+
+            # Pixels
+            for y in range(self.height):            #parcours des lignes
+                for x in range(self.width):         #parcours des colonnes
+                    r, g, b = self.pixels[y][x]     #extraction du tuple
+                    f.write(f"{r} {g} {b} ")        #écriture dans le fichier
+                f.write("\n")                       #fin de la lignes --> ligne suivante
     
 
 def cross_product(A, B):
@@ -222,8 +222,8 @@ def main():
             D = CanvasToViewport(i, j)
             color = TraceRay(O, D, 1, inf,scene,lights, 3)
             canvas.putPixel(i, j, color.to_tuple())
-    canvas.savePNG("output.png")
-    print("Image saved as output.png")    
+    canvas.savePPM("output.ppm")
+    print("Image saved as output.ppm")    
 
 if __name__ == "__main__":
     main()
