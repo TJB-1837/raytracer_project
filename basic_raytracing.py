@@ -15,14 +15,14 @@ VHEIGHT = 1
 DISTANCE_TO_VIEWPORT = 1
 
 # Couleur de fond
-BACKGROUND_COLOR = (240, 240, 240)
+BACKGROUND_COLOR = (0, 0, 0) #(240, 240, 240)
 
 # Scène : 3 sphères de Gambetta 
 scene = Scene([
-    Sphere((0, -1, 3), 1, (255, 0, 0),500),   # rouge
-    Sphere((2, 0, 4), 1, (0, 0, 255),500),    # bleu
-    Sphere((-2, 0, 4), 1, (0, 255, 0),10),   # vert
-    Sphere((0, -5001, 0),5000,(255, 255, 0),1000) # jaune
+    Sphere((0, -1, 3), 1, (255, 0, 0),500,0.2),   # rouge
+    Sphere((2, 0, 4), 1, (0, 0, 255),500,0.3),    # bleu
+    Sphere((-2, 0, 4), 1, (0, 255, 0),10,0.4),   # vert
+    Sphere((0, -5001, 0),5000,(255, 255, 0),1000,0.5) # jaune
     ],
     [
     Light("ambient",0.2,(0,0,0),(0,0,0)),
@@ -65,6 +65,9 @@ def computeLighting(P, N, V, s):
 
     return i
 
+def reflectRay(R, N):
+    return vector_sub( vector_mul( vector_mul(N,2), dot(N, R) ), R)
+
 
 def closestIntersection(O, D, t_min, t_max):
     closest_t = math.inf
@@ -102,7 +105,7 @@ def intersect_ray_sphere(origin, direction, sphere):
     t2 = (-b - math.sqrt(discriminant)) / (2*a)
     return t1, t2
 
-def trace_ray(origin, direction, t_min, t_max):
+def trace_ray(origin, direction, t_min, t_max, recursion_depth):
 
     closest_sphere, closest_t = closestIntersection(origin, direction, t_min, t_max)
     if closest_sphere == None:
@@ -112,8 +115,20 @@ def trace_ray(origin, direction, t_min, t_max):
     N = vector_sub(P,closest_sphere.center)
     N = normalize(N)
     direction_inv = (-direction[0],-direction[1],-direction[2])
-    color = vector_mul(closest_sphere.color, computeLighting(P,N,direction_inv,closest_sphere.specular))
+    local_color = vector_mul(closest_sphere.color, computeLighting(P,N,direction_inv,closest_sphere.specular))
     
+    # If we hit the recursion limit or the object is not reflective, we're done
+    r = closest_sphere.reflective
+    if recursion_depth <= 0 or r <= 0:
+        return (int(local_color[0]),int(local_color[1]),int(local_color[2]))
+    
+
+    # Compute the reflected color
+    R = reflectRay(direction_inv, N)
+    reflected_color = trace_ray(P, R, 0.001, math.inf, recursion_depth - 1)
+
+    color = vector_add ( vector_mul(local_color,(1 - r)), vector_mul(reflected_color, r))
+
     return (int(color[0]),int(color[1]),int(color[2]))
     
 
@@ -122,6 +137,7 @@ image = Image.new("RGB", (WIDTH, HEIGHT))
 pixels = image.load()
 
 camera_origin = (0, 0, 0)
+recursion_depth = 2
 
 for x in range(-WIDTH//2, WIDTH//2):
     for y in range(-HEIGHT//2, HEIGHT//2):
@@ -129,7 +145,7 @@ for x in range(-WIDTH//2, WIDTH//2):
         direction = canvas_to_viewport(x, y)
 
         # lancer le rayon
-        color = trace_ray(camera_origin, direction, 1, math.inf)
+        color = trace_ray(camera_origin, direction, 1, math.inf, recursion_depth)
 
         # dessiner pixel
         px = x + WIDTH//2
