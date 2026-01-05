@@ -41,8 +41,14 @@ def computeLighting(P, N, V, s):
         else:
             if light.type == "point":
                L = vector_sub(light.position,P)
+               t_max = 1
             else:
                L = light.direction
+               t_max = math.inf
+
+            shadow_sphere, shadow_t = closestIntersection(P, L, 0.001, t_max)
+            if shadow_sphere != None:
+                continue
             
             # diffuse lightning
             n_dot_l = dot(N, L)
@@ -63,7 +69,7 @@ def computeLighting(P, N, V, s):
 def closestIntersection(O, D, t_min, t_max):
     closest_t = math.inf
     closest_sphere = None
-    for sphere in scene.Spheres:
+    for sphere in scene.spheres:
         t1, t2 = intersect_ray_sphere(O, D, sphere)
         if t_min < t1 < t_max and t1 < closest_t:
             closest_t = t1
