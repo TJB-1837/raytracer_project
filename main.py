@@ -218,7 +218,7 @@ def ComputeLighting(P, N,V,s,scene):
                 #L = light.position - P
                 L= Vector3( light.position.x - P.x, light.position.y -P.y, light.position.z - P.z)
                 t_max = 1
-                L = vector_normalize(L)
+                #L = vector_normalize(L)
             else:
                 L = vector_normalize(light.direction)
                 t_max = inf
@@ -227,6 +227,7 @@ def ComputeLighting(P, N,V,s,scene):
             if (shadow_obj != None) :
                 continue
             
+            L = vector_normalize(L)
             # Diffuse
             n_dot_l = dot_product(N, L)
             if (n_dot_l > 0):
@@ -309,19 +310,19 @@ def main():
 
     rectangle1 = Rectangle(Vector3(0, 0, 10), Vector3(0, 0, -1), 20, 20, Color(200, 200, 200), 100, 0.1)#backwall
     rectangle2 = Rectangle(Vector3(0, -2, 5), Vector3(0, 1, 0), 20, 20, Color(255, 230, 150), 100, 0.1) #floor
-    rectangle3 = Rectangle(Vector3(0, 6, 5), Vector3(0, -1, 0), 20, 20, Color(245, 245, 245), 100, 0.1) #ceiling
+    rectangle3 = Rectangle(Vector3(0, 10, 5), Vector3(0, -1, 0), 20, 20, Color(245, 245, 245), 100, 0.1) #ceiling
     rectangle4 = Rectangle(Vector3(-6, 2, 5), Vector3(1, 0, 0), 20, 20, Color(150, 180, 255), 100, 0.1)#left wall
     rectangle5 = Rectangle(Vector3(6, 2, 5), Vector3(-1, 0, 0), 20, 20, Color(150, 180, 255), 100, 0.1) #right yellow wall
     rectangles=[rectangle1,rectangle2,rectangle3,rectangle4,rectangle5]
 
     light1 = Light("ambient", 0.1,None,None)
-    light2 = Light("point", 0.6, Vector3(2, 1, 0), None) 
-    light3 = Light("directional", 0.3, None, Vector3(1, 4, 4)) 
+    light2 = Light("point", 0.6, Vector3(2, 6, 0), None) 
+    light3 = Light("directional", 0.3, None, Vector3(1, 4, -4)) 
     lights = [light1,light2,light3] 
 
     scene = Scene(spheres, rectangles, lights) 
     print("Hello from raytracer-project!")
-    O = Vector3(0, 1, -10)                                        #Position de la caméra
+    O = Vector3(0, 2, -20)                                        #Position de la caméra
     pi = math.pi
     R = rotation_matrix(Vector3(0,0,1),pi/10000)
     for i in range(-Cw//2 , Cw//2) : 
