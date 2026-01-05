@@ -1,6 +1,8 @@
 from PIL import Image
 from sphere import Sphere
-from utils import dot, vector_sub
+from light import Light
+from scene import Scene
+from utils import dot, vector_sub, vector_add, length, vector_mul, normalize
 import math
 
 # Configuration de la scène 
@@ -16,13 +18,62 @@ DISTANCE_TO_VIEWPORT = 1
 BACKGROUND_COLOR = (240, 240, 240)
 
 # Scène : 3 sphères de Gambetta 
-scene = [
-    Sphere((0, -1, 3), 1, (255, 0, 0)),   # rouge
-    Sphere((2, 0, 4), 1, (0, 0, 255)),    # bleu
-    Sphere((-2, 0, 4), 1, (0, 255, 0))    # vert
-]
+scene = Scene([
+    Sphere((0, -1, 3), 1, (255, 0, 0),500),   # rouge
+    Sphere((2, 0, 4), 1, (0, 0, 255),500),    # bleu
+    Sphere((-2, 0, 4), 1, (0, 255, 0),10),   # vert
+    Sphere((0, -5001, 0),5000,(255, 255, 0),1000) # jaune
+    ],
+    [
+    Light("ambient",0.2,(0,0,0),(0,0,0)),
+    Light("point",0.6,(2,1,0),(0,0,0)),
+    Light("directionnal",0.2,(0,0,0),(1,4,4))
+    ]
+
+)
 
 # Fonctions du raytracer
+def computeLighting(P, N, V, s):
+    i = 0.0
+    for light in scene.lights:
+        if light.type == "ambient":
+           i += light.intensity
+        else:
+            if light.type == "point":
+               L = vector_sub(light.position,P)
+            else:
+               L = light.direction
+            
+            # diffuse lightning
+            n_dot_l = dot(N, L)
+            if n_dot_l > 0:
+               i += light.intensity * n_dot_l/(length(N) * length(L))
+            
+            # specular lightning
+            if s != -1:
+                R = vector_sub(vector_mul(N,2*dot(N,L)),L)
+                r_dot_v = dot(R, V)
+                if r_dot_v > 0 :
+                    i += light.intensity * pow(r_dot_v/(length(R) * length(V)), s)
+
+
+    return i
+
+
+def closestIntersection(O, D, t_min, t_max):
+    closest_t = math.inf
+    closest_sphere = None
+    for sphere in scene.Spheres:
+        t1, t2 = intersect_ray_sphere(O, D, sphere)
+        if t_min < t1 < t_max and t1 < closest_t:
+            closest_t = t1
+            closest_sphere = sphere
+
+        if t_min < t2 < t_max and t2 < closest_t:
+            closest_t = t2
+            closest_sphere = sphere
+        
+    return closest_sphere, closest_t
 
 def canvas_to_viewport(x, y):
     vx = x * VWIDTH / WIDTH
@@ -46,24 +97,19 @@ def intersect_ray_sphere(origin, direction, sphere):
     return t1, t2
 
 def trace_ray(origin, direction, t_min, t_max):
-    closest_t = math.inf
-    closest_sphere = None
 
-    for sphere in scene:
-        t1, t2 = intersect_ray_sphere(origin, direction, sphere)
-        
-        if t_min < t1 < t_max and t1 < closest_t:
-            closest_t = t1
-            closest_sphere = sphere
-        
-        if t_min < t2 < t_max and t2 < closest_t:
-            closest_t = t2
-            closest_sphere = sphere
-    
-    if closest_sphere is None:
+    closest_sphere, closest_t = closestIntersection(origin, direction, t_min, t_max)
+    if closest_sphere == None:
         return BACKGROUND_COLOR
     
-    return closest_sphere.color
+    P = vector_add(origin, vector_mul(direction, closest_t))
+    N = vector_sub(P,closest_sphere.center)
+    N = normalize(N)
+    direction_inv = (-direction[0],-direction[1],-direction[2])
+    color = vector_mul(closest_sphere.color, computeLighting(P,N,direction_inv,closest_sphere.specular))
+    
+    return (int(color[0]),int(color[1]),int(color[2]))
+    
 
 # Rendu
 image = Image.new("RGB", (WIDTH, HEIGHT))
