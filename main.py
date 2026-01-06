@@ -4,8 +4,8 @@ import math
 from pyray import Vector3
 
 inf = math.inf
-Cw = 1920
-Ch = 1080
+Cw = 1280
+Ch = 720
 
 Vw=1
 Vh=Vw * Ch / Cw
@@ -219,10 +219,14 @@ def ComputeLighting(P, N,V,s,scene):
                 L= Vector3( light.position.x - P.x, light.position.y -P.y, light.position.z - P.z)
                 t_max = 1
                 #L = vector_normalize(L)
+
             else:
+                #L = vector_normalize(light.direction)
                 L = vector_normalize(light.direction)
                 t_max = inf
+
             # Shadow check
+            
             shadow_obj, shadow_t = ClosestIntersection(P, L, 0.001, t_max,scene)
             if (shadow_obj != None) :
                 continue
@@ -302,14 +306,14 @@ def ClosestIntersection(O, D, t_min, t_max,scene) :
 def main():
     canvas = Canva(Cw,Ch)
 
-    sphere1 =  Sphere(Vector3(0, -1, 3), 1, Color(255, 0, 0),500, 0.2) #Red (Shiny and a bit reflective) 
-    sphere2 =  Sphere(Vector3(2, 0, 4),1,Color(0, 0, 255)  ,500, 0.3)  # Blue (Shinyand a bit more reflective)
-    sphere3 =  Sphere(Vector3(-2, 0, 4),1,Color(0, 255, 0),10, 0.4)  # Blue (somewhat shiny and even more reflective)
+    sphere1 =  Sphere(Vector3(0, 1, 3), 1, Color(255, 0, 0),500, 0.2) #Red (Shiny and a bit reflective) 
+    sphere2 =  Sphere(Vector3(2, 2, 4),1,Color(0, 0, 255)  ,500, 0.3)  # Blue (Shinyand a bit more reflective)
+    sphere3 =  Sphere(Vector3(-2, 2, 4),1,Color(0, 255, 0),10, 0.4)  # Blue (somewhat shiny and even more reflective)
     #sphere4 =  Sphere(Vector3(0, -5001, 0),5000 ,Color(255, 255, 0), 1000, 0.5)  # Yellow (very shiny and half reflective)
-    spheres = [sphere1, sphere2, sphere3,]
+    spheres = [sphere1, sphere2, sphere3]
 
     rectangle1 = Rectangle(Vector3(0, 0, 10), Vector3(0, 0, -1), 20, 20, Color(200, 200, 200), 100, 0.1)#backwall
-    rectangle2 = Rectangle(Vector3(0, -2, 5), Vector3(0, 1, 0), 20, 20, Color(255, 230, 150), 100, 0.1) #floor
+    rectangle2 = Rectangle(Vector3(0, 0, 5), Vector3(0, 1, 0), 20, 20, Color(255, 230, 150), 100, 0.1) #floor
     rectangle3 = Rectangle(Vector3(0, 10, 5), Vector3(0, -1, 0), 20, 20, Color(245, 245, 245), 100, 0.1) #ceiling
     rectangle4 = Rectangle(Vector3(-6, 2, 5), Vector3(1, 0, 0), 20, 20, Color(150, 180, 255), 100, 0.1)#left wall
     rectangle5 = Rectangle(Vector3(6, 2, 5), Vector3(-1, 0, 0), 20, 20, Color(150, 180, 255), 100, 0.1) #right yellow wall
