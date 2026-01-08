@@ -2,7 +2,15 @@ from PIL import Image
 from sphere import Sphere
 from light import Light
 from scene import Scene
-from utils import dot, vector_sub, vector_add, length, vector_mul, normalize
+from utils import (dot, 
+                   vector_sub, 
+                   vector_add, 
+                   length, 
+                   vector_mul, 
+                   normalize,
+                   rotation_matrix
+                   )
+from canvas import Canvas
 import math
 
 # Configuration de la scène 
@@ -117,41 +125,38 @@ def trace_ray(origin, direction, t_min, t_max, recursion_depth):
     direction_inv = (-direction[0],-direction[1],-direction[2])
     local_color = vector_mul(closest_sphere.color, computeLighting(P,N,direction_inv,closest_sphere.specular))
     
-    # If we hit the recursion limit or the object is not reflective, we're done
     r = closest_sphere.reflective
     if recursion_depth <= 0 or r <= 0:
         return (int(local_color[0]),int(local_color[1]),int(local_color[2]))
     
-
-    # Compute the reflected color
     R = reflectRay(direction_inv, N)
     reflected_color = trace_ray(P, R, 0.001, math.inf, recursion_depth - 1)
 
     color = vector_add ( vector_mul(local_color,(1 - r)), vector_mul(reflected_color, r))
 
     return (int(color[0]),int(color[1]),int(color[2]))
-    
+
+
 
 # Rendu
-image = Image.new("RGB", (WIDTH, HEIGHT))
-pixels = image.load()
+#image = Image.new("RGB", (WIDTH, HEIGHT))
+#pixels = image.load()
+canvas = Canvas(HEIGHT,WIDTH)
 
-camera_origin = (0, 0, 0)
+camera_origin = (0,0,0)
+camera_rotation = rotation_matrix((0,1,0), 0)  #Theta en radians
 recursion_depth = 2
 
+camera_pos = camera_origin
+camera_distance = vector_sub((0, -1, 3),camera_pos)
+
+print("Rendu en cours ...")
 for x in range(-WIDTH//2, WIDTH//2):
     for y in range(-HEIGHT//2, HEIGHT//2):
-        # point sur le viewport
-        direction = canvas_to_viewport(x, y)
-
-        # lancer le rayon
+        direction =  camera_rotation @ canvas_to_viewport(x, y)
         color = trace_ray(camera_origin, direction, 1, math.inf, recursion_depth)
+        canvas.putPixel(x,y,color)
 
-        # dessiner pixel
-        px = x + WIDTH//2
-        py = HEIGHT//2 - y - 1
-        pixels[px, py] = color
 
-# Sauvegarder l’image
-image.save("render.png")
-print("Image générée : render.png")
+canvas.save()
+print("Image générée : render.ppm")
