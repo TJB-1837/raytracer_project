@@ -24,10 +24,11 @@ def CanvasToViewport(x, y) :
 
 def IntersectRaySphere(O, D, sphere) :
     r = sphere.radius
-    CO = Vector3(O.x - sphere.center.x,
+    CO = Vector3(O.x - sphere.center.x,    # Vecteur entre la sphère et la caméra (O)
              O.y - sphere.center.y,
              O.z - sphere.center.z)
 
+    # calculs des points d'intersections entre le rayon et une sphère
     a = dot_product(D, D)
     b = 2*dot_product(CO, D)
     c = dot_product(CO, CO) - r*r
@@ -36,17 +37,17 @@ def IntersectRaySphere(O, D, sphere) :
     if (discriminant < 0) :
         return inf, inf
     
-
     t1 = (-b + math.sqrt(discriminant)) / (2*a)
     t2 = (-b - math.sqrt(discriminant)) / (2*a)
     return t1, t2
 
 
 def IntersectRayRectangle(O, D, rect):
-    denom = dot_product(rect.normal, D)
+    denom = dot_product(rect.normal, D) #On veut savoir si on regarde le rectangle depuis une tranche 
     if abs(denom) < 1e-6:
         return inf
 
+    #Calculs de la distance entre la caméra et le rectangle
     t = dot_product(
         rect.normal,
         Vector3(
@@ -56,11 +57,12 @@ def IntersectRayRectangle(O, D, rect):
         )
     ) / denom
 
+    # pas d'affichage si le rectangle est derrière la caméra
     if (t <= 0):
         return inf
     
     # Calcul du point d'intersection P = O+t*D 
-    P = Vector3(O.x + t*D.x, O.y + t*D.y, O.z + t*D.z)
+    P = Vector3(O.x + t*D.x, O.y + t*D.y, O.z + t*D.z)  
 
     # Vérifier si P est à l'intérieur du rectangle
     v = Vector3(P.x - rect.center.x, P.y - rect.center.y, P.z - rect.center.z)
@@ -73,6 +75,7 @@ def IntersectRayRectangle(O, D, rect):
 
 
 def ReflectRay(R,N):
+    # 2 * N * <N:R> - R
     return Vector3(2 * N.x * dot_product(N, R) - R.x,2 * N.y * dot_product(N, R) - R.y,2 * N.z * dot_product(N, R) - R.z)
 
 def ComputeLighting(P, N,V,s,scene):
@@ -107,7 +110,7 @@ def ComputeLighting(P, N,V,s,scene):
                 r_dot_v = dot_product(R, V)
                 if r_dot_v > 0 :
                     i += light.intensity * math.pow(r_dot_v/(vector_length(R) * vector_length(V)), s)
-    return min(1,i)
+    return min(1,i) 
 
 
 def TraceRay(O, D, t_min, t_max,scene, recursion_depth) :
@@ -120,7 +123,6 @@ def TraceRay(O, D, t_min, t_max,scene, recursion_depth) :
              O.y + closest_t * D.y,
              O.z + closest_t * D.z)
     
-
     if isinstance(closest_obj, Sphere):
         N = vector_normalize(Vector3(P.x - closest_obj.center.x,            #N = P - closest_sphere.center
                                     P.y - closest_obj.center.y,
@@ -128,6 +130,7 @@ def TraceRay(O, D, t_min, t_max,scene, recursion_depth) :
         i= ComputeLighting(P, N, Vector3(-D.x,-D.y,-D.z), closest_obj.specular, scene)
         local_color = closest_obj.color * i
         r = closest_obj.reflective
+
     elif isinstance(closest_obj, Rectangle):
         N = closest_obj.normal
         i = ComputeLighting(P, N, Vector3(-D.x,-D.y,-D.z), closest_obj.specular, scene)
@@ -184,20 +187,19 @@ def ChoseAngleAndAXis():
 def FillCanva(R,canvas,scene,O) : 
     for i in range(-Cw//2 , Cw//2) : 
         for j in range (-Ch//2 , Ch//2):
-            D_np = vec3_to_np(CanvasToViewport(i, j)) @ R 
+            D_np = vec3_to_np(CanvasToViewport(i, j)) @ R  #Conversion to numpy array pour appliquer un produit matriciel
             D = np_to_vec3(D_np)
             color = TraceRay(O, D, 1, inf,scene, 3)
             canvas.putPixel(i, j, color.to_tuple())
 
 
 def RenderImage():
-    axe, theta = ChoseAngleAndAXis()
+    axe, theta = ChoseAngleAndAXis()  #Axe et angle entrés par l'utilisateur
     scene, O = load_scene_json("scene.json") #Position de la caméra
-    pointLight = scene.lights[1]
     print("Rendering in progress...")
-    canvas = Canva(Cw,Ch)                                  
+    canvas = Canva(Cw,Ch)                            
     R = rotation_matrix(axe,theta)
-    FillCanva(R,canvas,scene,O)
+    FillCanva(R,canvas,scene,O)    
     canvas.savePPM("output.ppm")
     print("Image saved as output.ppm") 
 
@@ -216,9 +218,9 @@ def RenderAnimation() :
     for frame in range(NB_FRAMES):
         print(f"Rendering frame {frame + 1} / {NB_FRAMES}")
         canvas = Canva(Cw,Ch)                                 
-        theta += 2*math.pi / 30  # Increment angle for animation
-        pointLight.position = Vector3 (
-            xLight +radius *math.cos(theta),
+        theta += 2*math.pi / NB_FRAMES  # Incrémentation de l'angle 
+        pointLight.position = Vector3 (  # Calcul de la nouvelle position de la pointLight
+            xLight +radius *math.cos(theta), 
             yLight +radius * math.sin(theta),
             zLight
         )   
@@ -228,7 +230,7 @@ def RenderAnimation() :
 
 
 def main():
-    choice = input("Choisir le mode [i = image | a = animation] : ").strip().lower()
+    choice = input("Choisir le mode [i = image | a = animation] : ").strip().lower() # prise en compte du caractere ou de la string d'input
 
     if choice in ["i", "image"]:
         RenderImage()
