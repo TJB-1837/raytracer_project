@@ -1,5 +1,4 @@
 import pyray as pr
-
 import numpy as np
 import math
 from pyray import Vector3
@@ -21,7 +20,7 @@ d=1
 BACKGROUND_COLOR = Color(0,0,0)
 
 def CanvasToViewport(x, y) :
-    return Vector3(x*Vw/Cw, y*Vh/Ch, d) #calcule le vecteur directeur caméra / fenetre d affichage
+    return Vector3(x*Vw/Cw, y*Vh/Ch, d) #calcule le vecteur directeur "caméra vers fenetre d affichage"
 
 def IntersectRaySphere(O, D, sphere) :
     r = sphere.radius
@@ -91,19 +90,19 @@ def ComputeLighting(P, N,V,s,scene):
                 t_max = inf
 
             # Shadow check
-            
             shadow_obj, shadow_t = ClosestIntersection(P, L, 0.001, t_max,scene)
             if (shadow_obj != None) :
                 continue
             
             L = vector_normalize(L)
+
             # Diffuse
             n_dot_l = dot_product(N, L)
             if (n_dot_l > 0):
                 i += light.intensity * n_dot_l/(vector_length(N) * vector_length(L))
 
             # Specular
-            if (s != -1) : #for matte shapes
+            if (s != -1) : # For matte shapes
                 R = ReflectRay(L,N)
                 r_dot_v = dot_product(R, V)
                 if r_dot_v > 0 :
@@ -166,21 +165,78 @@ def ClosestIntersection(O, D, t_min, t_max,scene) :
 
     return closest_obj, closest_t
 
+def ChoseAngleAndAXis():
+    theta = float(input("Chose the rotation angle of the camera (strings not accepted)"))
+    axeInput = input("Chose the rotation axis [x, y or z ONLY] : ")
+    if axeInput == 'x' :
+        axe = Vector3(1,0,0)
+    elif axeInput == 'y' : 
+        axe = Vector3(0,1,0)
+    elif axeInput == 'z' :
+        axe = Vector3(0,0,1) 
+    else :
+        print("You didn't chose a valid axis, no rotation will be applied")
+        axe = Vector3(1,0,0) # Choix arbitraire
+        theta = 0
+    return axe, theta
 
-def main():
-    canvas = Canva(Cw,Ch)
-    print("Hello from raytracer-project!")
-    scene, O = load_scene_json("scene.json")                                       #Position de la caméra
-    pi = math.pi
-    R = rotation_matrix(Vector3(0,0,1),pi/10000)
+
+def FillCanva(R,canvas,scene,O) : 
     for i in range(-Cw//2 , Cw//2) : 
         for j in range (-Ch//2 , Ch//2):
-            D_np = R @ vec3_to_np(CanvasToViewport(i, j))
+            D_np = vec3_to_np(CanvasToViewport(i, j)) @ R 
             D = np_to_vec3(D_np)
             color = TraceRay(O, D, 1, inf,scene, 3)
             canvas.putPixel(i, j, color.to_tuple())
+
+
+def RenderImage():
+    axe, theta = ChoseAngleAndAXis()
+    scene, O = load_scene_json("scene.json") #Position de la caméra
+    pointLight = scene.lights[1]
+    print("Rendering in progress...")
+    canvas = Canva(Cw,Ch)                                  
+    R = rotation_matrix(axe,theta)
+    FillCanva(R,canvas,scene,O)
     canvas.savePPM("output.ppm")
-    print("Image saved as output.ppm")    
+    print("Image saved as output.ppm") 
+
+
+def RenderAnimation() : 
+    NB_FRAMES = 30
+    radius = 2
+    zLight = 5
+    theta = 0
+    scene, O = load_scene_json("scene.json") #Position de la caméra
+    pointLight = scene.lights[1]
+    xLight = pointLight.position.x
+    yLight = pointLight.position.y
+    zLight = pointLight.position.z
+    print("Hello from raytracer-project!")
+    for frame in range(NB_FRAMES):
+        print(f"Rendering frame {frame + 1} / {NB_FRAMES}")
+        canvas = Canva(Cw,Ch)                                 
+        theta += 2*math.pi / 30  # Increment angle for animation
+        pointLight.position = Vector3 (
+            xLight +radius *math.cos(theta),
+            yLight +radius * math.sin(theta),
+            zLight
+        )   
+        R = rotation_matrix(Vector3(0,1,0),0)
+        FillCanva(R,canvas,scene,O)
+        canvas.savePPM(f"frame_{frame+1:02}.ppm")
+
+
+def main():
+    choice = input("Choisir le mode [i = image | a = animation] : ").strip().lower()
+
+    if choice in ["i", "image"]:
+        RenderImage()
+    elif choice in ["a", "anim", "animation"]:
+        RenderAnimation()
+    else:
+        print("Entrée invalide")
+             
 
 if __name__ == "__main__":
     main()
