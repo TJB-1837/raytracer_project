@@ -45,7 +45,7 @@ How to run
 5. Chose your rendering type : "i" for an image and "a" for animation
 5.5. If image rendering selected, you will have to provide an angle (in radian) and an axis for the camera rotation : follow the displayed instructions to make sure no error will occur.
 
-5. The rendered image(s) will be saved as:
+6. The rendered image(s) will be saved as:
    - output.ppm (if image rendering)
    - frame_0x.ppm (30 frames generated for animation rendering, with these images you will be able to create a gif online)
 
