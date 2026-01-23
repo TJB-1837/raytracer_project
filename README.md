@@ -71,5 +71,6 @@ Output
 The program generates PPM image(s) (ASCII P3 format),
 which can be opened with most image viewers or converted
 using tools such as GIMP.
+To change the resolution of the output, just modify the values of Cw and Ch in canvas.py
 
 --------------------------------------------
