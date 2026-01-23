@@ -229,7 +229,7 @@ def RenderAnimation() :
 
 
 def main():
-    choice = input("Choisir le mode [i = image | a = animation] : ").strip().lower() # prise en compte du caractere ou de la string d'input
+    choice = input("Choisir le mode [i / image ==> image | a / anim / animation ==> animation] : ").strip().lower() # prise en compte du caractere ou de la string d'input
 
     if choice in ["i", "image"]:
         RenderImage()
