@@ -9,7 +9,8 @@ This project implements a simple raytracer in Python.
 It renders static images of 3D scenes composed of spheres,
 rectangular walls and multiple light sources.
 
-The output is a bitmap image in the PPM (Portable Pixmap) format.
+The output is one (or multiple) bitmap image(s) in the PPM (Portable Pixmap) format.
+
 
 --------------------------------------------
 Features
@@ -19,7 +20,8 @@ Features
 - Shadows
 - Reflections (recursive ray tracing)
 - Scene loaded from a text file
-- Output image in PPM format
+- Output image(s) in PPM format
+- Basic user interactions 
 
 --------------------------------------------
 Requirements
@@ -36,12 +38,16 @@ How to run
 --------------------------------------------
 1. Make sure Python 3 is installed.
 2. Install required packages if needed:
-   pip install numpy pyray
+   pip install numpy pyray json
 3. Place a scene description file (e.g. scene.json) in the project directory.
 4. Run:
    python main.py
-5. The rendered image will be saved as:
-   output.ppm
+5. Chose your rendering type : "i" for an image and "a" for animation
+5.5. If image rendering selected, you will have to provide an angle and an axis for the camera rotation : follow the displayed instructions to make sure no error will occur.
+
+5. The rendered image(s) will be saved as:
+   - output.ppm (if image rendering)
+   - frame_0x.ppm (30 frames generated for animation rendering, with these images you will be able to create a gif online)
 
 --------------------------------------------
 Scene file format
@@ -54,7 +60,7 @@ Supported objects:
 - sphere x y z radius r g b specular reflective
 - rectangle cx cy cz nx ny nz width height r g b specular reflective
 - ambient intensity
-- point intensity x y z
+- point intensity x y z (MANDATORY to be declared as the second light in your json file if you want the animation feature to work)
 - directional intensity dx dy dz
 
 Lines starting with # are comments.
@@ -62,7 +68,7 @@ Lines starting with # are comments.
 --------------------------------------------
 Output
 --------------------------------------------
-The program generates a PPM image (ASCII P3 format),
+The program generates PPM image(s) (ASCII P3 format),
 which can be opened with most image viewers or converted
 using tools such as GIMP.
 

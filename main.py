@@ -10,13 +10,11 @@ from color import Color
 from canva import Canva, Cw, Ch
 from utils import dot_product, vector_length, vector_normalize, cross_product, rotation_matrix, vec3_to_np, np_to_vec3
 
+# Définition de variables globales
 inf = math.inf
-
-
 Vw=1
 Vh=Vw * Ch / Cw
 d=1
-    
 BACKGROUND_COLOR = Color(0,0,0)
 
 def CanvasToViewport(x, y) :
@@ -169,19 +167,19 @@ def ClosestIntersection(O, D, t_min, t_max,scene) :
     return closest_obj, closest_t
 
 def ChoseAngleAndAXis():
-    theta = float(input("Chose the rotation angle of the camera (strings not accepted)"))
-    axeInput = input("Chose the rotation axis [x, y or z ONLY] : ")
-    if axeInput == 'x' :
-        axe = Vector3(1,0,0)
+    theta = float(input("Chose the rotation angle of the camera (strings not accepted) : "))
+    axisInput = input("Chose the rotation axis [x, y or z ONLY] : ")
+    if axisInput == 'x' :
+        axis = Vector3(1,0,0)
     elif axeInput == 'y' : 
-        axe = Vector3(0,1,0)
+        axis = Vector3(0,1,0)
     elif axeInput == 'z' :
-        axe = Vector3(0,0,1) 
+        axis = Vector3(0,0,1) 
     else :
         print("You didn't chose a valid axis, no rotation will be applied")
-        axe = Vector3(1,0,0) # Choix arbitraire
+        axis = Vector3(1,0,0) # Choix arbitraire
         theta = 0
-    return axe, theta
+    return axis, theta
 
 
 def FillCanva(R,canvas,scene,O) : 
@@ -207,14 +205,15 @@ def RenderImage():
 def RenderAnimation() : 
     NB_FRAMES = 30
     radius = 2
-    zLight = 5
     theta = 0
     scene, O = load_scene_json("scene.json") #Position de la caméra
-    pointLight = scene.lights[1]
+    pointLight = scene.lights[1] # Récupération de la pointLight OBLIGATOIREMENT DEFINIE EN 2EME dans la scene json
+    if(pointLight.type != "point"):
+        print("This animation rotates a point light, please define one as your second light defined in your json scene !")
+        return
     xLight = pointLight.position.x
     yLight = pointLight.position.y
     zLight = pointLight.position.z
-    print("Hello from raytracer-project!")
     for frame in range(NB_FRAMES):
         print(f"Rendering frame {frame + 1} / {NB_FRAMES}")
         canvas = Canva(Cw,Ch)                                 
