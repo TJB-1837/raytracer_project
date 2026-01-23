@@ -1,5 +1,5 @@
-Cw = 480
-Ch = 270
+Cw = 800
+Ch = 600
 
 class Canva:
     def __init__(self,width,height):

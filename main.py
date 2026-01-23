@@ -171,9 +171,9 @@ def ChoseAngleAndAXis():
     axisInput = input("Chose the rotation axis [x, y or z ONLY] : ")
     if axisInput == 'x' :
         axis = Vector3(1,0,0)
-    elif axeInput == 'y' : 
+    elif axisInput == 'y' : 
         axis = Vector3(0,1,0)
-    elif axeInput == 'z' :
+    elif axisInput == 'z' :
         axis = Vector3(0,0,1) 
     else :
         print("You didn't chose a valid axis, no rotation will be applied")
