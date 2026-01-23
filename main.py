@@ -167,7 +167,7 @@ def ClosestIntersection(O, D, t_min, t_max,scene) :
     return closest_obj, closest_t
 
 def ChoseAngleAndAXis():
-    theta = float(input("Chose the rotation angle of the camera (strings not accepted) : "))
+    theta = float(input("Chose the rotation angle (in radian) of the camera (strings not accepted) : "))
     axisInput = input("Chose the rotation axis [x, y or z ONLY] : ")
     if axisInput == 'x' :
         axis = Vector3(1,0,0)

@@ -43,7 +43,7 @@ How to run
 4. Run:
    python main.py
 5. Chose your rendering type : "i" for an image and "a" for animation
-5.5. If image rendering selected, you will have to provide an angle and an axis for the camera rotation : follow the displayed instructions to make sure no error will occur.
+5.5. If image rendering selected, you will have to provide an angle (in radian) and an axis for the camera rotation : follow the displayed instructions to make sure no error will occur.
 
 5. The rendered image(s) will be saved as:
    - output.ppm (if image rendering)
